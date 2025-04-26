@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block title %}Analysis Notebook{% endblock %}
+{% block content %}
+  <h2>Project Notebook</h2>
+  <iframe src="{{ url_for('static', filename='notebook.html') }}"
+          style="width:100%; height:90vh; border:none;"></iframe>
+{% endblock %}

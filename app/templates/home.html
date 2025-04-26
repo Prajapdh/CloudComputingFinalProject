@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}Home{% endblock %}
+{% block content %}
+  <h2>Final Group Project Data Analysis</h2>
+  <p>Register or log in to get started!</p>
+  <a href="{{ url_for('register') }}"><button>Register</button></a>
+  <a href="{{ url_for('login') }}"><button>Login</button></a>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+  <h2>Dashboard</h2>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat,msg in messages %}
+      <div class="alert alert-{{ 'success' if cat=='success' else 'danger' }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+  <div class="alert alert-success">
+    Welcome, {{ user_info.firstname }} {{ user_info.lastname }}<br>
+    ({{ user_info.email }})
+  </div>
+
+  <h3>Sample Pull: HSHD_NUM = 10</h3>
+  <div class="scrollable-table">
+    <table>
+      <thead><tr>
+        {% for col in hshd_10_df.columns %}<th>{{ col }}</th>{% endfor %}
+      </tr></thead>
+      <tbody>
+        {% for _,row in hshd_10_df.iterrows() %}
+        <tr>{% for v in row %}<td>{{ v }}</td>{% endfor %}</tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Filter by HSHD_NUM</h3>
+  <form method="post" action="">
+    <input type="number" name="hshd_num" value="1" required>
+    <button type="submit">Search</button>
+  </form>
+  <div class="scrollable-table">
+    <table>
+      <thead><tr>
+        {% for col in filtered_df.columns %}<th>{{ col }}</th>{% endfor %}
+      </tr></thead>
+      <tbody>
+        {% if filtered_df.empty %}
+          <tr><td colspan="{{ filtered_df.shape[1] }}">No data.</td></tr>
+        {% else %}
+          {% for _,row in filtered_df.iterrows() %}
+          <tr>{% for v in row %}<td>{{ v }}</td>{% endfor %}</tr>
+          {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Household Size vs Total Spend</h3>
+  <img src="data:image/png;base64,{{ plot_data }}" alt="Spend Plot">
+  <p>Correlation coefficient: {{ correlation }}</p>
+
+  <h3>Upload New CSVs</h3>
+  <form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+    <label>Transactions:</label><input type="file" name="transactions_file" accept=".csv" required>
+    <label>Households:</label><input type="file" name="households_file" accept=".csv" required>
+    <label>Products:</label><input type="file" name="products_file" accept=".csv" required>
+    <button type="submit">Upload</button>
+  </form>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Households Data{% endblock %}
+{% block content %}
+  <h1>Households Data</h1>
+  <div class="scrollable-table">
+    <table>
+      <thead><tr>
+        <th>HSHD_NUM</th><th>L</th><th>AGE_RANGE</th>
+        <th>MARITAL</th><th>INCOME_RANGE</th>
+      </tr></thead>
+      <tbody>
+        {% for hh in households %}
+        <tr>
+          <td>{{ hh.HSHD_NUM }}</td>
+          <td>{{ hh.L }}</td>
+          <td>{{ hh.AGE_RANGE }}</td>
+          <td>{{ hh.MARITAL }}</td>
+          <td>{{ hh.INCOME_RANGE }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

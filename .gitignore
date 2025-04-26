@@ -1,0 +1,38 @@
+# created by virtualenv automatically
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+.venv/
+Lib/
+pyvenv.cfg
+
+# VS Code settings (optional, if you use VS Code)
+.vscode/
+
+# Environment variable files
+.env
+
+# Pytest cache
+.pytest_cache/
+
+# MyPy cache
+.mypy_cache/
+
+# Django stuff:
+*.log
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# MacOS metadata files
+.DS_Store
+
+# Other common Python package stuff
+build/
+dist/
+*.egg-info/

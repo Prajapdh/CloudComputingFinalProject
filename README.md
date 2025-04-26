@@ -20,7 +20,8 @@ This project is the final group assignment for Cloud Computing. It demonstrates 
 ## 🏗️ Directory Structure
 
 ```
-├── 8451_The_Complete_Journey_2_Sample-2-1/ # Original data zip (git-ignored) ├── app/ 
+├── 8451_The_Complete_Journey_2_Sample-2-1/ # Original data zip (git-ignored) 
+├── app/ 
 │ ├── flaskapp.py # Flask application entrypoint 
 │ ├── requirements.txt # App-specific dependencies 
 │ ├── users.db # SQLite DB (auto-generated) 

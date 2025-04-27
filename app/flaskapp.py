@@ -60,9 +60,9 @@ def load_data(transactions_path, households_path, products_path):
 
 # Initial data load
 final_df = load_data(
-    './../8451_The_Complete_Journey_2_Sample-2-1/8451_The_Complete_Journey_2_Sample-2/400_transactions.csv',
-    './../8451_The_Complete_Journey_2_Sample-2-1/8451_The_Complete_Journey_2_Sample-2/400_households.csv',
-    './../8451_The_Complete_Journey_2_Sample-2-1/8451_The_Complete_Journey_2_Sample-2/400_products.csv'
+    './../8451_The_Complete_Journey_2_Sample-2/400_households.csv',
+    './../8451_The_Complete_Journey_2_Sample-2/400_transactions.csv',
+    './../8451_The_Complete_Journey_2_Sample-2/400_products.csv'
 )
 
 # Plot helper

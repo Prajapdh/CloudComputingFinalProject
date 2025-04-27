@@ -33,8 +33,8 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # ─── Cloud-SQL Analytics Engine ─────────────────────────────────────────────
-DB_USER = os.environ.get('DB_USER', 'YOUR_CLOUDSQL_USER')
-DB_PASS = os.environ.get('DB_PASS', 'YOUR_CLOUDSQL_PASSWORD')
+DB_USER = os.environ.get('DB_USER', 'admin')
+DB_PASS = os.environ.get('DB_PASS', 'admin')
 DB_HOST = '34.45.4.119'
 DB_NAME = '400_transactions'
 ANALYTICS_URI = (

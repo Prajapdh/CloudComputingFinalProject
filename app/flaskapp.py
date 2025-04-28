@@ -38,12 +38,12 @@ DB_PASS = os.environ.get('DB_PASS', 'admin')
 DB_HOST = os.environ.get('DB_HOST', '34.45.4.119')
 DB_PORT = os.environ.get('DB_PORT', '3306')
 DB_NAME = os.environ.get('DB_NAME', '400_transactions')
+
 ANALYTICS_URI = (
     f"mysql+pymysql://{DB_USER}:{DB_PASS}"
     f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
 analytics_engine = create_engine(ANALYTICS_URI)
-
 
 # ─── Models ───────────────────────────────────────────────────────────────────
 class User(db.Model):
@@ -55,10 +55,8 @@ class User(db.Model):
     lastname  = db.Column(db.String(120), nullable=False)
     email     = db.Column(db.String(120), unique=True, nullable=False)
 
-
 with app.app_context():
-    db.create_all()  # only creates the SQLite tables
-
+    db.create_all()
 
 # ─── CSV‐based loader (for /upload fallback) ─────────────────────────────────
 def load_data(tx_path, hh_path, pr_path):
@@ -94,18 +92,17 @@ def load_data(tx_path, hh_path, pr_path):
         'PRODUCT_NUM','DEPARTMENT','COMMODITY'
     ])
 
-
 # ─── SQL-based loader ─────────────────────────────────────────────────────────
 def load_data_from_sql():
-    tx = pd.read_sql_table('transactions',   analytics_engine)
-    hh = pd.read_sql_table('households',     analytics_engine)
-    pr = pd.read_sql_table('products',       analytics_engine)
+    tx = pd.read_sql_table('transactions', analytics_engine)
+    hh = pd.read_sql_table('households',   analytics_engine)
+    pr = pd.read_sql_table('products',     analytics_engine)
 
     tx = tx.rename(columns={
-        'HSHD_NU':     'HSHD_NUM',
-        'BASKET_N':    'BASKET_NUM',
-        'PURCHASE_':   'PURCHASE_DATE',
-        'PRODUCT_':    'PRODUCT_NUM'
+        'HSHD_NU':   'HSHD_NUM',
+        'BASKET_N':  'BASKET_NUM',
+        'PURCHASE_': 'PURCHASE_DATE',
+        'PRODUCT_':  'PRODUCT_NUM'
     })
 
     tx.columns = tx.columns.str.strip()
@@ -133,19 +130,21 @@ def load_data_from_sql():
         'PRODUCT_NUM','DEPARTMENT','COMMODITY'
     ])
 
+# ─── Try SQL then CSV fallback ─────────────────────────────────────────────────
+def try_sql_load():
+    df = load_data_from_sql()
+    if df.empty:
+        raise ValueError("SQL returned no rows")
+    return df
 
-# initial load: prefer SQL, fallback to CSV if it fails
 try:
-    final_df = load_data_from_sql()
+    final_df = try_sql_load()
 except Exception as e:
-    app.logger.warning(f"SQL load failed, falling back to CSV: {e}")
-    # point these at real CSVs if you need to bootstrap:
-    #final_df = load_data(
-    #    '../8451_The_Complete_Journey_2_Sample-2/400_transactions.csv',
-    #    '../8451_The_Complete_Journey_2_Sample-2/400_households.csv',
-    #    '../8451_The_Complete_Journey_2_Sample-2/400_products.csv'
-    #)
-
+    app.logger.warning(f"SQL load failed or empty ({e}); falling back to CSVs in uploads/")
+    tx_csv = os.path.join(app.config['UPLOAD_FOLDER'], '400_transactions.csv')
+    hh_csv = os.path.join(app.config['UPLOAD_FOLDER'], '400_households.csv')
+    pr_csv = os.path.join(app.config['UPLOAD_FOLDER'], '400_products.csv')
+    final_df = load_data(tx_csv, hh_csv, pr_csv)
 
 # ─── Plot & correlation helpers ───────────────────────────────────────────────
 def generate_plot(df):
@@ -172,7 +171,6 @@ def generate_plot(df):
     buf.seek(0)
     return base64.b64encode(buf.getvalue()).decode()
 
-
 def calculate_correlation(df):
     basket = (
         df.groupby(['HSHD_NUM','BASKET_NUM'])
@@ -186,12 +184,10 @@ def calculate_correlation(df):
     )
     return agg['HH_SIZE'].corr(agg['SPEND'])
 
-
 # ─── Routes ───────────────────────────────────────────────────────────────────
 @app.route('/')
 def home():
     return render_template('home.html')
-
 
 @app.route('/register', methods=['GET','POST'])
 def register():
@@ -203,15 +199,13 @@ def register():
                 username = request.form['username'],
                 password = request.form['password'],
                 firstname= request.form['firstname'],
-                lastname = request.form['lastname'],
-                email    = request.form['email']
+                lastname  = request.form['lastname'],
+                email     = request.form['email']
             )
-            db.session.add(u)
-            db.session.commit()
-            flash('Registration successful. Please log in.','success')
+            db.session.add(u); db.session.commit()
+            flash('Registration successful. Please log in.', 'success')
             return redirect(url_for('login'))
     return render_template('register.html')
-
 
 @app.route('/login', methods=['GET','POST'])
 def login():
@@ -223,15 +217,13 @@ def login():
         if user:
             session['username'] = user.username
             return redirect(url_for('success', username=user.username))
-        flash('Invalid credentials','danger')
+        flash('Invalid credentials', 'danger')
     return render_template('login.html')
-
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('home'))
-
 
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -242,7 +234,7 @@ def upload():
     for key in ['transactions_file','households_file','products_file']:
         f = request.files.get(key)
         if not f:
-            flash(f'Missing file: {key}','danger')
+            flash(f'Missing file: {key}', 'danger')
             return redirect(url_for('success', username=session['username']))
         fn   = secure_filename(f.filename)
         path = os.path.join(app.config['UPLOAD_FOLDER'], fn)
@@ -255,7 +247,7 @@ def upload():
         files['households_file'],
         files['products_file']
     )
-    flash('Files uploaded successfully','success')
+    flash('Files uploaded successfully', 'success')
     return redirect(url_for('success', username=session['username']))
 
 @app.route('/success/<username>', methods=['GET','POST'])
@@ -263,37 +255,31 @@ def success(username):
     if session.get('username') != username:
         return redirect(url_for('login'))
 
-    # load fresh from Cloud SQL
-    df = load_data_from_sql()
+    # use the global final_df (SQL or CSV fallback)
+    df = final_df
 
-    # *new* — log how many rows came back
-    app.logger.info(f"load_data_from_sql() returned DataFrame with shape: {df.shape}")
-
-    # now generate your plot, correlation, filters, etc.
+    # generate analytics
     plot_data   = generate_plot(df)
-    corr        = calculate_correlation(df)
-    # use the first household in the data as a default, not hard-coded “1”
-    first_hshd  = int(df['HSHD_NUM'].min())
-    num         = request.form.get('hshd_num', type=int, default=first_hshd)
-    filtered_df = df.query('HSHD_NUM == @num')
+    correlation = calculate_correlation(df)
+    hshd_list   = sorted(df['HSHD_NUM'].unique())
+    selected    = request.form.get('hshd_num', type=int, default=hshd_list[0])
+    filtered_df = df.query('HSHD_NUM == @selected')
     user        = User.query.filter_by(username=username).first()
 
     return render_template(
         'success.html',
-        user_info   = user,
-        plot_data   = plot_data,
-        correlation = corr,
-        # pass both the list of households and the currently‐selected one
-        hshd_list   = sorted(df['HSHD_NUM'].unique()),
-        selected_hshd = num,
-        filtered_df = filtered_df
+        user_info     = user,
+        plot_data     = plot_data,
+        correlation   = correlation,
+        hshd_10_df    = df.query('HSHD_NUM == 10'),
+        hshd_list     = hshd_list,
+        selected_hshd = selected,
+        filtered_df   = filtered_df
     )
-
 
 @app.route('/notebook')
 def notebook():
     return render_template('notebook_view.html')
 
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)

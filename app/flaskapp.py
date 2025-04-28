@@ -35,11 +35,12 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # ─── Cloud-SQL Analytics Engine ─────────────────────────────────────────────
 DB_USER = os.environ.get('DB_USER', 'admin')
 DB_PASS = os.environ.get('DB_PASS', 'admin')
-DB_HOST = '34.45.4.119'
-DB_NAME = '400_transactions'
+DB_HOST = os.environ.get('DB_HOST', '34.45.4.119')
+DB_PORT = os.environ.get('DB_PORT', '3306')
+DB_NAME = os.environ.get('DB_NAME', '400_transactions')
 ANALYTICS_URI = (
     f"mysql+pymysql://{DB_USER}:{DB_PASS}"
-    f"@{DB_HOST}/{DB_NAME}"
+    f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
 analytics_engine = create_engine(ANALYTICS_URI)
 
@@ -139,11 +140,11 @@ try:
 except Exception as e:
     app.logger.warning(f"SQL load failed, falling back to CSV: {e}")
     # point these at real CSVs if you need to bootstrap:
-    final_df = load_data(
-        '../8451_The_Complete_Journey_2_Sample-2/400_transactions.csv',
-        '../8451_The_Complete_Journey_2_Sample-2/400_households.csv',
-        '../8451_The_Complete_Journey_2_Sample-2/400_products.csv'
-    )
+    #final_df = load_data(
+    #    '../8451_The_Complete_Journey_2_Sample-2/400_transactions.csv',
+    #    '../8451_The_Complete_Journey_2_Sample-2/400_households.csv',
+    #    '../8451_The_Complete_Journey_2_Sample-2/400_products.csv'
+    #)
 
 
 # ─── Plot & correlation helpers ───────────────────────────────────────────────
@@ -257,25 +258,35 @@ def upload():
     flash('Files uploaded successfully','success')
     return redirect(url_for('success', username=session['username']))
 
-
 @app.route('/success/<username>', methods=['GET','POST'])
 def success(username):
     if session.get('username') != username:
         return redirect(url_for('login'))
 
-    user      = User.query.filter_by(username=username).first()
-    plot_data = generate_plot(final_df)
-    corr      = calculate_correlation(final_df)
-    num       = request.form.get('hshd_num', type=int, default=1)
-    filtered  = final_df.query('HSHD_NUM == @num')
+    # load fresh from Cloud SQL
+    df = load_data_from_sql()
+
+    # *new* — log how many rows came back
+    app.logger.info(f"load_data_from_sql() returned DataFrame with shape: {df.shape}")
+
+    # now generate your plot, correlation, filters, etc.
+    plot_data   = generate_plot(df)
+    corr        = calculate_correlation(df)
+    # use the first household in the data as a default, not hard-coded “1”
+    first_hshd  = int(df['HSHD_NUM'].min())
+    num         = request.form.get('hshd_num', type=int, default=first_hshd)
+    filtered_df = df.query('HSHD_NUM == @num')
+    user        = User.query.filter_by(username=username).first()
 
     return render_template(
         'success.html',
         user_info   = user,
         plot_data   = plot_data,
         correlation = corr,
-        hshd_10_df  = final_df.query('HSHD_NUM == 10'),
-        filtered_df = filtered
+        # pass both the list of households and the currently‐selected one
+        hshd_list   = sorted(df['HSHD_NUM'].unique()),
+        selected_hshd = num,
+        filtered_df = filtered_df
     )
 
 
